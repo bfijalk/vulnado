@@ -44,94 +44,102 @@ jobs:
           "access_token=$ACCESS_TOKEN" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Checkout the branch
+        shell: powershell
         run: |
-          BRANCH_NAME=${{ github.event.pull_request.head.ref }}
-          git fetch origin $BRANCH_NAME:$BRANCH_NAME
-          git checkout $BRANCH_NAME
+          $branchName = "${{ github.event.pull_request.head.ref }}"
+          git fetch origin $branchName
+          git checkout $branchName
 
       - name: Create Classes List
         id: changes
+        shell: powershell
         run: |
-          java_files=$(find "src/main/java/com/scalesec/vulnado" -type f -name "*.java")
-          JAVA_FILES=()
+          $javaFiles = Get-ChildItem -Path "src/main/java/com/scalesec/vulnado" -Recurse -Filter "*.java" | ForEach-Object { $_.FullName }
+          $javaFilesString = $javaFiles -join "`n"
 
-          while IFS= read -r FILE; do
-            echo "Processing file: $FILE"
-            JAVA_FILES+=("$FILE")
-          done <<< "$java_files"
+          Write-Host "Java files found:`n$javaFilesString"
 
-          echo "JAVA_FILES=${JAVA_FILES[@]}"
-          {
-            echo "java_files<<EOF"
-            printf "%s\n" "${JAVA_FILES[@]}"
-            echo "EOF"
-          } >> "$GITHUB_ENV"
+          Add-Content -Path $env:GITHUB_ENV -Value "java_files<<EOF`n$javaFilesString`nEOF"
 
       - name: Prepare and Send to API (TestCreator)
         id: send_api
+        shell: powershell
         run: |
-          FILES_ARRAY=()
-          while IFS= read -r FILE; do
-            CLASS_NAME=$(basename "$FILE" .java)
-            TEST_FILE="src/test/java/com/scalesec/vulnado/${CLASS_NAME}Tests.java"
-            FILES_ARRAY+=(--form "files=@${FILE}")
-            if [ -f "$TEST_FILE" ]; then
-              FILES_ARRAY+=(--form "ExistingTests=@${TEST_FILE}")
-            fi
-          done <<< "${{ env.java_files }}"
+          $filesArray = @()
 
-          RESPONSE=$(curl --location 'http://api.gftaiimpact.local/ai/test' \
-            --header "Authorization: Bearer ${{ env.access_token }}" \
-            --form "RunName=GenerateTests" \
-            "${FILES_ARRAY[@]}" \
-            --form "jobName=DemoTestCreator" \
-            --form "SearchPattern=*.java" \
-            --form "TargetExtension=java" \
-            --form "PromptId=TestCreator__CreateUnitTests_V1" \
-            --form "SourceCodeLanguage=Java" \
-            --form "TestType=Unit" \
-            --form "TestingFrameworks=MSTEST,MOQ" \
-            --form "Llm=${{ vars.LLM }}" \
-            --form "AdditionalInstructions=Generate only the source code, without any extra information")
+          foreach ($file in (Get-Content "$env:GITHUB_ENV" | Select-String "java_files" -Context 0,1).Context.PostContext) {
+              $className = [System.IO.Path]::GetFileNameWithoutExtension($file)
+              $testFile = "src/test/java/com/scalesec/vulnado/${className}Tests.java"
 
-          echo "API Response: $RESPONSE"
-          JOB_ID=$(echo $RESPONSE | jq -r '.jobId')
-          echo "job_id=$JOB_ID" >> $GITHUB_ENV
+              $filesArray += "--form files=@$file"
+
+              if (Test-Path $testFile) {
+                  $filesArray += "--form ExistingTests=@$testFile"
+              }
+          }
+
+          $response = Invoke-RestMethod -Uri "http://api.gftaiimpact.local/ai/test" -Method Post -Headers @{ "Authorization" = "Bearer $env:access_token" } -Body @{
+              RunName             = "GenerateTests"
+              jobName             = "DemoTestCreator"
+              SearchPattern       = "*.java"
+              TargetExtension     = "java"
+              PromptId            = "TestCreator__CreateUnitTests_V1"
+              SourceCodeLanguage  = "Java"
+              TestType            = "Unit"
+              TestingFrameworks   = "MSTEST,MOQ"
+              Llm                = "${{ vars.LLM }}"
+              AdditionalInstructions = "Generate only the source code, without any extra information"
+          }
+
+          Write-Host "API Response: $response"
+
+          $jobId = $response.jobId
+          Add-Content -Path $env:GITHUB_ENV -Value "job_id=$jobId"
 
       - name: Monitor Job Status
         id: monitor_status
+        shell: powershell
         run: |
-          JOB_ID=${{ env.job_id }}
-          STATUS="Pending"
-          while [[ "$STATUS" != "Completed" ]]; do
-            RESPONSE=$(curl --location "http://api.gftaiimpact.local/ai/jobs/$JOB_ID/status" \
-              --header "Authorization: Bearer ${{ env.access_token }}")
-            STATUS=$(echo $RESPONSE | jq -r '.status')
-            echo "Current status: $STATUS"
-            sleep 10
-          done
-          echo "Final status: $STATUS"
+          $jobId = "${{ env.job_id }}"
+          $status = "Pending"
+
+          while ($status -ne "Completed") {
+              $response = Invoke-RestMethod -Uri "http://api.gftaiimpact.local/ai/jobs/$jobId/status" -Method Get -Headers @{ "Authorization" = "Bearer $env:access_token" }
+              $status = $response.status
+              Write-Host "Current status: $status"
+              Start-Sleep -Seconds 10
+          }
+
+          Write-Host "Final status: $status"
 
       - name: Save Generated Tests
+        shell: powershell
         run: |
-          OUTPUT_URIS="${{ env.output_uris }}"
-          while IFS= read -r uri; do
-            FILE_URL="http://api.gftaiimpact.local${uri}" 
-            FILE_CONTENT=$(curl --location "$FILE_URL" --header "Authorization: Bearer ${{ env.access_token }}")
-            CLASS_NAME=$(basename "$uri" .java)
-            TEST_FILE="src/test/java/com/scalesec/vulnado/${CLASS_NAME}Tests.java"
+          $outputUris = "${{ env.output_uris }}" -split "`n"
 
-            mkdir -p "$(dirname "$TEST_FILE")"
-            echo "$FILE_CONTENT" > "$TEST_FILE"
-          done <<< "$OUTPUT_URIS"
+          foreach ($uri in $outputUris) {
+              $fileUrl = "http://api.gftaiimpact.local$uri"
+              $fileContent = Invoke-RestMethod -Uri $fileUrl -Headers @{ "Authorization" = "Bearer $env:access_token" }
+
+              $className = [System.IO.Path]::GetFileNameWithoutExtension($uri)
+              $testFile = "src/test/java/com/scalesec/vulnado/${className}Tests.java"
+
+              $directory = [System.IO.Path]::GetDirectoryName($testFile)
+              if (!(Test-Path $directory)) {
+                  New-Item -ItemType Directory -Path $directory -Force
+              }
+
+              $fileContent | Out-File -FilePath $testFile
+          }
 
       - name: Commit and Push Generated Files
+        shell: powershell
         run: |
           git config --global user.name 'gft-ai-impact[bot]'
           git config --global user.email 'ai-impact[bot]@gft.com'
           git add .
           git commit -m "Add generated Documentations and Unit Tests"
-          git push --set-upstream origin ${{ github.event.pull_request.head.ref }}
+          git push --set-upstream origin "${{ github.event.pull_request.head.ref }}"
 
       - name: Create Pull Request
         id: create-pr
