@@ -101,6 +101,7 @@ jobs:
         shell: powershell
         run: |
           $jobId = "${{ env.job_id }}"
+          $jobId = "${{ steps.send_api.outputs.job_id }}"  # Get jobId from previous step output
           $status = "Pending"
 
           while ($status -ne "Completed") {
