@@ -20,7 +20,7 @@ jobs:
 
       - name: Authenticate with Keycloak
         id: keycloak_auth
-        shell: pwsh
+        shell: powershell
         run: |
           $authUrl = "http://auth.gftaiimpact.local/realms/ai-impact/protocol/openid-connect/token"
           $headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
