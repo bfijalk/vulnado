@@ -2,8 +2,6 @@ name: AI Impact Full Pipeline
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   types: [opened, synchronize]
 
 permissions:
   contents: write
@@ -15,7 +13,7 @@ jobs:
   generate_tests:
     runs-on: self-hosted
     outputs:
-      job_id: ${{ steps.send_api.outputs.job_id }}  # Declare output
+      job_id: ${{ steps.send_api.outputs.job_id }}  # Declare job_id as an output from this job
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -89,26 +87,32 @@ jobs:
               SourceCodeLanguage  = "Java"
               TestType            = "Unit"
               TestingFrameworks   = "MSTEST,MOQ"
-              Llm                = "${{ vars.LLM }}"
+              Llm                 = "${{ vars.LLM }}"
               AdditionalInstructions = "Generate only the source code, without any extra information"
           }
 
           Write-Host "API Response: $response"
 
           $jobId = $response.jobId
-          Add-Content -Path $env:GITHUB_ENV -Value "job_id=$jobId"
+          echo "job_id=$jobId" >> $GITHUB_ENV  # Make sure to echo the job_id into GITHUB_ENV
 
+  monitor_status:
+    runs-on: self-hosted
+    needs: generate_tests  # This job depends on generate_tests
+    steps:
       - name: Monitor Job Status
         id: monitor_status
         shell: powershell
         run: |
-          $jobId = "${{ env.job_id }}"
-          Write-Host "$jobId"
-            if (-not $jobId -or $jobId -eq "") {
-                  Write-Host "Error: job_id is empty. Cannot check job status."
-                  exit 1
-              }
-          $jobId = "${{ steps.send_api.outputs.job_id }}"  # Get jobId from previous step output
+          $jobId = "${{ needs.generate_tests.outputs.job_id }}"  # Get jobId from previous job's output
+          
+          Write-Host "Job ID: $jobId"
+          
+          if (-not $jobId -or $jobId -eq "") {
+              Write-Host "Error: job_id is empty. Cannot check job status."
+              exit 1
+          }
+
           $status = "Pending"
 
           while ($status -ne "Completed") {
