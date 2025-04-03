@@ -14,6 +14,8 @@ permissions:
 jobs:
   generate_tests:
     runs-on: self-hosted
+    outputs:
+      job_id: ${{ steps.send_api.outputs.job_id }}  # Declare output
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -101,6 +103,11 @@ jobs:
         shell: powershell
         run: |
           $jobId = "${{ env.job_id }}"
+          Write-Host "$jobId"
+            if (-not $jobId -or $jobId -eq "") {
+                  Write-Host "Error: job_id is empty. Cannot check job status."
+                  exit 1
+              }
           $jobId = "${{ steps.send_api.outputs.job_id }}"  # Get jobId from previous step output
           $status = "Pending"
 
