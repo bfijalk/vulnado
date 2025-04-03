@@ -2,6 +2,8 @@ name: AI Impact Full Pipeline
 
 on:
   workflow_dispatch:
+  # pull_request:
+  #   types: [opened, synchronize]
 
 permissions:
   contents: write
@@ -93,8 +95,12 @@ jobs:
 
           Write-Host "API Response: $response"
 
+          # Ensure we capture the jobId from the response and pass it as output
           $jobId = $response.jobId
-          echo "job_id=$jobId" >> $GITHUB_ENV  # Make sure to echo the job_id into GITHUB_ENV
+          echo "job_id=$jobId" >> $GITHUB_ENV  # Ensure that the jobId is properly passed to GITHUB_ENV
+          
+          # Output the jobId so it can be accessed by the next job
+          echo "::set-output name=job_id::$jobId"
 
   monitor_status:
     runs-on: self-hosted
@@ -104,10 +110,12 @@ jobs:
         id: monitor_status
         shell: powershell
         run: |
-          $jobId = "${{ needs.generate_tests.outputs.job_id }}"  # Get jobId from previous job's output
+          # Correct way to access the jobId passed from the generate_tests job
+          $jobId = "${{ needs.generate_tests.outputs.job_id }}"
           
           Write-Host "Job ID: $jobId"
           
+          # Check if jobId is empty and exit if it is
           if (-not $jobId -or $jobId -eq "") {
               Write-Host "Error: job_id is empty. Cannot check job status."
               exit 1
