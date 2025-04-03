@@ -20,23 +20,35 @@ jobs:
       - name: Authenticate with Keycloak
         id: keycloak_auth
         run: |
-          TOKEN_RESPONSE=$(curl -s -X POST 'http://auth.gftaiimpact.local/realms/ai-impact/protocol/openid-connect/token' \
-            -H 'Content-Type: application/x-www-form-urlencoded' \
-            -d 'client_id=ai-impact-client' \
-            -d "username=administrator" \
-            -d "password=Gft@2025" \
-            -d "scope=openid" \
-            -d "grant_type=password")
+        # Define the URL and credentials
+            $authUrl = "http://auth.gftaiimpact.local/realms/ai-impact/protocol/openid-connect/token"
+            $headers = @{
+                "Content-Type" = "application/x-www-form-urlencoded"
+            }
 
-          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+            $body = @{
+                client_id  = "ai-impact-client"
+                username   = "administrator"
+                password   = "Gft@2025"
+                scope      = "openid"
+                grant_type = "password"
+            }
 
-          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
-            echo "Failed to obtain access token"
-            echo "$TOKEN_RESPONSE"
-            exit 1
-          fi
+            # Send the POST request
+            $response = Invoke-RestMethod -Uri $authUrl -Method Post -Headers $headers -Body $body
 
-          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_ENV
+            # Extract the access token
+            $ACCESS_TOKEN = $response.access_token
+
+            # Check if access token is empty or null
+            if (-not $ACCESS_TOKEN -or $ACCESS_TOKEN -eq "null") {
+                Write-Host "Failed to obtain access token"
+                Write-Host ($response | ConvertTo-Json -Depth 10)  # Print the full response
+                exit 1
+            }
+
+            # Save token to GitHub environment
+            "access_token=$ACCESS_TOKEN" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Checkout the branch
         run: |
