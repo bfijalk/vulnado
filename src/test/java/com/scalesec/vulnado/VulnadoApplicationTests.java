@@ -1,4 +1,4 @@
-﻿package com.scalesec.vulnado;
+package com.scalesec.vulnado;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,7 +14,7 @@ public class VulnadoApplicationTests {
 	@Test
 	public void contextLoads() {
 		// Test to ensure the application context loads successfully
-	}
+	assertNotNull(SpringApplication.run(VulnadoApplication.class, new String[]{}));
 
 	@Test
 	public void main_ShouldInitializePostgresAndRunApplication() {
