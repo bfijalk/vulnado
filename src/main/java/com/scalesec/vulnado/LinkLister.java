@@ -10,9 +10,10 @@ import java.io.IOException;
 import java.net.*;
 
 
+private LinkLister() {}
 public class LinkLister {
   public static List<String> getLinks(String url) throws IOException {
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     Document doc = Jsoup.connect(url).get();
     Elements links = doc.select("a");
     for (Element link : links) {
