@@ -1,4 +1,4 @@
-﻿package com.scalesec.vulnado;
+package com.scalesec.vulnado;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,6 +13,7 @@ public class VulnadoApplicationTests {
 
 	@Test
 	public void contextLoads() {
+// This method is used to test if the application context loads successfully
 		// Test to ensure the application context loads successfully
 	}
 
