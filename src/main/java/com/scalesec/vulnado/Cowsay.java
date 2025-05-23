@@ -4,11 +4,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class Cowsay {
+import java.util.logging.Logger;
   public static String run(String input) {
+private static final Logger logger = Logger.getLogger(Cowsay.class.getName());
     ProcessBuilder processBuilder = new ProcessBuilder();
+private Cowsay() {}
     String cmd = "/usr/games/cowsay '" + input + "'";
-    System.out.println(cmd);
-    processBuilder.command("bash", "-c", cmd);
+    logger.info(cmd);
+    processBuilder.command("/bin/bash", "-c", cmd);
 
     StringBuilder output = new StringBuilder();
 
@@ -21,7 +24,7 @@ public class Cowsay {
         output.append(line + "\n");
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("Error executing command.", e);
     }
     return output.toString();
   }
