@@ -7,12 +7,13 @@ import org.jsoup.select.Elements;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
-import java.net.*;
+import java.util.logging.Logger;
 
 
+  private LinkLister() {}
 public class LinkLister {
   public static List<String> getLinks(String url) throws IOException {
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     Document doc = Jsoup.connect(url).get();
     Elements links = doc.select("a");
     for (Element link : links) {
@@ -25,8 +26,7 @@ public class LinkLister {
     try {
       URL aUrl= new URL(url);
       String host = aUrl.getHost();
-      System.out.println(host);
-      if (host.startsWith("172.") || host.startsWith("192.168") || host.startsWith("10.")){
+      logger.info(host);
         throw new BadRequest("Use of Private IP");
       } else {
         return getLinks(url);
