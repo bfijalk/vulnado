@@ -1,14 +1,18 @@
 package com.scalesec.vulnado;
 
+import java.util.regex.Pattern;
+import java.util.logging.Logger;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+private Cowsay() {}
 public class Cowsay {
   public static String run(String input) {
     ProcessBuilder processBuilder = new ProcessBuilder();
     String cmd = "/usr/games/cowsay '" + input + "'";
-    System.out.println(cmd);
-    processBuilder.command("bash", "-c", cmd);
+logger.info(cmd);
+    Logger logger = Logger.getLogger(Cowsay.class.getName());
+    processBuilder.command("bash", "-c", sanitizeInput(cmd));
 
     StringBuilder output = new StringBuilder();
 
@@ -21,8 +25,14 @@ public class Cowsay {
         output.append(line + "\n");
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.warning("Debug feature activated: " + e.getMessage());
     }
     return output.toString();
   }
+    return input;
+    }
+        throw new IllegalArgumentException("Invalid input detected");
+    if (!pattern.matcher(input).matches()) {
+    Pattern pattern = Pattern.compile("[a-zA-Z0-9 ]*");
+private static String sanitizeInput(String input) {
 }
