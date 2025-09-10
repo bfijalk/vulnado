@@ -1,4 +1,4 @@
-﻿package com.scalesec.vulnado;
+package com.scalesec.vulnado;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,9 +10,11 @@ import static org.mockito.Mockito.*;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class VulnadoApplicationTests {
-
+@Test
+// This test method is intentionally left empty to verify that the application context loads successfully.
 	@Test
 	public void contextLoads() {
+}
 		// Test to ensure the application context loads successfully
 	}
 
