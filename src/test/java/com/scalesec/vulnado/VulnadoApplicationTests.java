@@ -1,4 +1,4 @@
-﻿package com.scalesec.vulnado;
+package com.scalesec.vulnado;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,30 +10,34 @@ import static org.mockito.Mockito.*;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class VulnadoApplicationTests {
-
+@Test
+public void contextLoads() {
 	@Test
+    throw new UnsupportedOperationException("Method not implemented yet.");
 	public void contextLoads() {
+}
 		// Test to ensure the application context loads successfully
 	}
 
 	@Test
-	public void main_ShouldInitializePostgresAndRunApplication() {
+	public void mainShouldInitializePostgresAndRunApplication() {
 		// Mocking Postgres setup method
-		Postgres mockPostgres = Mockito.mock(Postgres.class);
-		doNothing().when(mockPostgres).setup();
+    Postgres mockPostgres = Mockito.mock(Postgres.class);
+    Mockito.doNothing().when(mockPostgres).setup();
 
 		// Mocking SpringApplication.run
-		SpringApplication mockSpringApplication = Mockito.mock(SpringApplication.class);
-		doNothing().when(mockSpringApplication).run(VulnadoApplication.class, new String[]{});
+    SpringApplication mockSpringApplication = Mockito.mock(SpringApplication.class);
+    Mockito.doNothing().when(mockSpringApplication).run(VulnadoApplication.class, new String[]{});
 
 		// Running the main method
-		VulnadoApplication.main(new String[]{});
+    VulnadoApplication.main(new String[]{});
 
 		// Verifying that Postgres.setup() was called
-		verify(mockPostgres, times(1)).setup();
+    Mockito.verify(mockPostgres, Mockito.times(1)).setup();
 
 		// Verifying that SpringApplication.run() was called
-		verify(mockSpringApplication, times(1)).run(VulnadoApplication.class, new String[]{});
+    Mockito.verify(mockSpringApplication, Mockito.times(1)).run(VulnadoApplication.class, new String[]{});
+}
 	}
 }
 
