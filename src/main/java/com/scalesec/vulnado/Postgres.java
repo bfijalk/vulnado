@@ -9,11 +9,11 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.UUID;
 
+private Postgres() {}
 public class Postgres {
 
     public static Connection connection() {
         try {
-            Class.forName("org.postgresql.Driver");
             String url = new StringBuilder()
                     .append("jdbc:postgresql://")
                     .append(System.getenv("PGHOST"))
@@ -22,17 +22,17 @@ public class Postgres {
             return DriverManager.getConnection(url,
                     System.getenv("PGUSER"), System.getenv("PGPASSWORD"));
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(e.getClass().getName()+": "+e.getMessage());
+            LOGGER.error("An error occurred", e);
+            LOGGER.error("Error: " + e.getClass().getName() + " " + e.getMessage());
             System.exit(1);
         }
         return null;
     }
     public static void setup(){
         try {
-            System.out.println("Setting up Database...");
+            LOGGER.info("Setting up Database...");
             Connection c = connection();
-            Statement stmt = c.createStatement();
+            try (Statement stmt = c.createStatement()) {
 
             // Create Schema
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS users(user_id VARCHAR (36) PRIMARY KEY, username VARCHAR (50) UNIQUE NOT NULL, password VARCHAR (50) NOT NULL, created_on TIMESTAMP NOT NULL, last_login TIMESTAMP)");
@@ -53,7 +53,7 @@ public class Postgres {
             insertComment("alice", "OMG so cute!");
             c.close();
         } catch (Exception e) {
-            System.out.println(e);
+            LOGGER.error("An error occurred", e);
             System.exit(1);
         }
     }
@@ -64,7 +64,7 @@ public class Postgres {
         try {
 
             // Static getInstance method is called with hashing MD5
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
 
             // digest() method is called to calculate message digest
             //  of an input digest() return array of byte
@@ -76,28 +76,33 @@ public class Postgres {
             // Convert message digest into hex value
             String hashtext = no.toString(16);
             while (hashtext.length() < 32) {
-                hashtext = "0" + hashtext;
+                StringBuilder hashtextBuilder = new StringBuilder(hashtext);
             }
             return hashtext;
         }
 
         // For specifying wrong message digest algorithms
         catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new CustomHashingException(e);
         }
+public class CustomHashingException extends Exception {
     }
+    public CustomHashingException(Throwable cause) {
 
+        super(cause);
     private static void insertUser(String username, String password) {
+    }
        String sql = "INSERT INTO users (user_id, username, password, created_on) VALUES (?, ?, ?, current_timestamp)";
+}
        PreparedStatement pStatement = null;
        try {
-          pStatement = connection().prepareStatement(sql);
+          try (PreparedStatement pStatement = connection.prepareStatement(sql)) {
           pStatement.setString(1, UUID.randomUUID().toString());
           pStatement.setString(2, username);
           pStatement.setString(3, md5(password));
           pStatement.executeUpdate();
        } catch(Exception e) {
-         e.printStackTrace();
+         LOGGER.error("An error occurred", e);
        }
     }
 
@@ -105,13 +110,13 @@ public class Postgres {
         String sql = "INSERT INTO comments (id, username, body, created_on) VALUES (?, ?, ?, current_timestamp)";
         PreparedStatement pStatement = null;
         try {
-            pStatement = connection().prepareStatement(sql);
+            try (PreparedStatement pStatement = connection.prepareStatement(sql)) {
             pStatement.setString(1, UUID.randomUUID().toString());
             pStatement.setString(2, username);
             pStatement.setString(3, body);
             pStatement.executeUpdate();
         } catch(Exception e) {
-            e.printStackTrace();
+            LOGGER.error("An error occurred", e);
         }
     }
 }
