@@ -1,14 +1,16 @@
 package com.scalesec.vulnado;
 
+import java.util.logging.Logger;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+private Cowsay() {}
 public class Cowsay {
   public static String run(String input) {
     ProcessBuilder processBuilder = new ProcessBuilder();
     String cmd = "/usr/games/cowsay '" + input + "'";
-    System.out.println(cmd);
-    processBuilder.command("bash", "-c", cmd);
+    logger.info(cmd);
+    processBuilder.command(\"bash\", \"-c\", sanitizeCommand(cmd));
 
     StringBuilder output = new StringBuilder();
 
@@ -21,8 +23,9 @@ public class Cowsay {
         output.append(line + "\n");
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.warning
     }
     return output.toString();
   }
+private static String sanitizeCommand(String command) {\n  // Add sanitization logic here\n  return command.replaceAll(\"[^a-zA-Z0-9 ]\", \"\");\n}
 }
